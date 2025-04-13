@@ -1,7 +1,20 @@
 import java.util.*;
 import java.text.*;
 
-// Abstract User class with enhanced authentication
+
+interface Loggable {
+    default void log(String message) {
+        System.out.println("LOG: " + message);
+    }
+}
+
+class RoomAssignmentException extends Exception {
+    public RoomAssignmentException(String message) {
+        super(message);
+    }
+}
+
+// Abstract User class with authentication and authorization
 abstract class User {
     protected String userId;
     protected String name;
@@ -240,7 +253,11 @@ class PGOwner extends User {
         
         Tenant tenant = findTenant(tId);
         if (tenant != null) {
-            assignRoom(rId, tenant);
+            try {
+                assignRoom(rId, tenant);
+            } catch (RoomAssignmentException e) {
+                System.out.println("Error assigning room: " + e.getMessage());
+            }
         } else {
             System.out.println("Tenant not found!");
         }
@@ -300,9 +317,16 @@ class PGOwner extends User {
         }
         return null;
     }
+
+    public class RoomValidator {
+        public boolean isValid(Room room) {
+            return room != null && room.getRoomId() != null;
+        }
+    }
     
     public List<Tenant> getTenants() {return this.tenants;}
     public void addTenant(Tenant tenant) { tenants.add(tenant); }
+    private RoomValidator validator= new RoomValidator();
     public void editTenant(String tenantId, String name, String contact, Date moveIn, Date moveOut) {
         for (Tenant t : tenants) {
             if (t.getUserId().equals(tenantId)) {
@@ -325,18 +349,28 @@ class PGOwner extends User {
         }
     }
 
-    public void assignRoom(String roomId, Tenant tenant) {
+    public void assignRoom(String roomId, Tenant tenant) throws RoomAssignmentException {
+        if (roomId == null) {
+            throw new RoomAssignmentException("Room ID cannot be null");
+        }
         Room room = rooms.get(roomId);
         if (room != null && !room.isOccupied()) {
             room.setTenant(tenant);
             tenant.setRoom(room);
-            System.out.println("Room assigned successfully!");
-        } else {
-            System.out.println("Room not available or doesn't exist!");
         }
     }
 
-    public void addRoom(Room room) { rooms.put(room.getRoomId(), room); }
+    public void addRoom(Room room) {
+        if (validator.isValid(room)) {
+            rooms.put(room.getRoomId(), room);
+        }
+    }
+    
+    // Overloaded version
+    public void addRoom(String roomId, double rent) {
+        addRoom(new Room(roomId, rent, 0, 0, "Single"));
+    }
+
     public void generateReport() {
         System.out.println("\n--- PG STATUS REPORT ---");
         System.out.println("Total Tenants: " + tenants.size());
@@ -409,12 +443,12 @@ class PGOwner extends User {
     private double calculateOccupancyRate() {
         long occupied = rooms.values().stream().filter(Room::isOccupied).count();
         return rooms.isEmpty() ? 0 : (double) occupied / rooms.size();
-    }
+    }    
 
 }
 
 // Base Tenant class modified to be more abstract
-class Tenant extends User {
+class Tenant extends User implements Loggable {
     private String contact;
     private Room room;
     protected List<Payment> payments = new ArrayList<>();
@@ -427,7 +461,22 @@ class Tenant extends User {
         this.name = name;
         this.email = email;
         this.password = password;
+        log("New tenant created.");
     }
+
+    // Overloaded constructors for different scenarios
+    public Tenant(String userId, String name, String email) {
+        this(userId, name, email, "default-pass");
+    }
+
+    public Tenant(String userId) {
+        this(userId, "Unknown", "no-email", "default-pass");
+    }
+
+    public Tenant(String userId, String name) {
+        this(userId, name, "no-email", "default-pass");
+    }
+
 
     @Override
     public void showMenu() {
@@ -738,6 +787,14 @@ public class PGApp {
         showMainMenu();
     }
 
+    private static void assignRoomWrapper(PGOwner owner, String roomId, Tenant tenant) {
+        try {
+            owner.assignRoom(roomId, tenant);
+        } catch (RoomAssignmentException e) {
+            System.out.println("Error assigning room: " + e.getMessage());
+        }
+    }
+    
     private static void showMainMenu() {
         while (true) {
             System.out.println("\n=== PG MANAGEMENT SYSTEM ===");
@@ -814,7 +871,11 @@ public class PGApp {
         tenant1.setContact("9876543210");
         tenant1.setMoveInDate(new Date());
         owner.addTenant(tenant1);
-        owner.assignRoom("R101", tenant1);
+        try {
+            owner.assignRoom("R101", tenant1);
+        } catch (RoomAssignmentException e) {
+            System.out.println("Error assigning room: " + e.getMessage());
+        }
 
         Tenant tenant2 = new Tenant("T002", "Jane Smith", "jane@example.com", "password456");
         tenant2.setContact("8765432109");
