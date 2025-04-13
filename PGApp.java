@@ -139,8 +139,44 @@ class PGOwner extends User {
         Date moveIn = parseDate(scanner.nextLine());
         System.out.print("Enter Move-out Date (yyyy-mm-dd): ");
         Date moveOut = parseDate(scanner.nextLine());
+        
+        System.out.println("\nSelect Tenant Type:");
+        System.out.println("1. Daily");
+        System.out.println("2. Weekly");
+        System.out.println("3. Fifteen Day");
+        System.out.println("4. Quarterly");
+        System.out.println("5. Bi-Yearly");
+        System.out.println("6. Yearly");
+        System.out.print("Enter choice (1-6): ");
+        
+        int tenantTypeChoice = scanner.nextInt();
+        scanner.nextLine(); // consume newline
+        
+        Tenant tenant;
+        switch (tenantTypeChoice) {
+            case 1:
+                tenant = new DailyTenant(id, name, email, pass);
+                break;
+            case 2:
+                tenant = new WeeklyTenant(id, name, email, pass);
+                break;
+            case 3:
+                tenant = new FifteenDayTenant(id, name, email, pass);
+                break;
+            case 4:
+                tenant = new QuarterlyTenant(id, name, email, pass);
+                break;
+            case 5:
+                tenant = new BiYearlyTenant(id, name, email, pass);
+                break;
+            case 6:
+                tenant = new YearlyTenant(id, name, email, pass);
+                break;
+            default:
+                System.out.println("Invalid choice! Creating default tenant type.");
+                tenant = new Tenant(id, name, email, pass);
+        }
 
-        Tenant tenant = new Tenant(id, name, email, pass);
         tenant.setContact(contact);
         tenant.setMoveInDate(moveIn);
         tenant.setMoveOutDate(moveOut);
@@ -377,13 +413,14 @@ class PGOwner extends User {
 
 }
 
-// Tenant class with enhanced features
+// Base Tenant class modified to be more abstract
 class Tenant extends User {
     private String contact;
     private Room room;
-    private List<Payment> payments = new ArrayList<>();
+    protected List<Payment> payments = new ArrayList<>();
     private Set<String> documents = new HashSet<>();
     private Date moveInDate, moveOutDate;
+    protected int paymentPeriodDays; // Number of days between payments
 
     public Tenant(String userId, String name, String email, String password) {
         this.userId = userId;
@@ -501,6 +538,95 @@ class Tenant extends User {
                              " | Due: " + formatDate(p.getDueDate()) + 
                              " | Status: " + (p.isPaid() ? "Paid" : "Pending"));
         }
+    }
+
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return (room.getRent() * paymentPeriodDays) / 30; // Base calculation using monthly rent
+    }
+}
+
+// Daily payment tenant
+class DailyTenant extends Tenant {
+    public DailyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 1;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() / 30; // Daily rate
+    }
+}
+
+// Weekly payment tenant
+class WeeklyTenant extends Tenant {
+    public WeeklyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 7;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return (room.getRent() * 7) / 30; // Weekly rate
+    }
+}
+
+// Fifteen day payment tenant
+class FifteenDayTenant extends Tenant {
+    public FifteenDayTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 15;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() / 2; // Half-monthly rate
+    }
+}
+
+// Quarterly payment tenant
+class QuarterlyTenant extends Tenant {
+    public QuarterlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 90;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 3; // Three months rent
+    }
+}
+
+// Bi-yearly payment tenant
+class BiYearlyTenant extends Tenant {
+    public BiYearlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 180;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 6; // Six months rent
+    }
+}
+
+// Yearly payment tenant
+class YearlyTenant extends Tenant {
+    public YearlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 365;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 12; // Full year rent
     }
 }
 
