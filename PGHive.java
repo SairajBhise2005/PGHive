@@ -1,3 +1,26 @@
+/*
+HOW TO RUN THE APPLICATION:
+--------------------------
+1. Save this file as PGHive.java
+2. Compile: javac PGHive.java
+3. Run: java PGHive
+
+LOGIN CREDENTIALS:
+-----------------
+Owner Login:
+Email: owner@pg.com
+Password: admin123
+
+Sample Tenant Login:
+Email: john@example.com
+Password: password123
+or
+Email: jane@example.com
+Password: password456
+
+*/
+
+
 import java.util.*;
 import java.text.*;
 
@@ -942,7 +965,7 @@ class RentOptimizer {
  * Main application class for the PG (Paying Guest) Management System.
  * Handles user authentication and provides the main menu interface.
  */
-public class PGApp {
+public class PGHive {
     private static Scanner scanner = new Scanner(System.in);
     private static PGOwner owner = new PGOwner("O001", "PG Owner", "owner@pg.com", "admin123");
 
