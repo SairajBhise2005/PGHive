@@ -73,7 +73,8 @@ class PGOwner extends User {
             System.out.println("8. Generate Reports");
             System.out.println("9. Generate Bulk Payments");
             System.out.println("10. Change Password");
-            System.out.println("11. Logout");
+            System.out.println("11. Optimize Rent Prices");
+            System.out.println("12. Logout");
             System.out.print("Select option: ");
 
             int choice = scanner.nextInt();
@@ -111,6 +112,9 @@ class PGOwner extends User {
                     changePasswordUI(scanner);
                     break;
                 case 11:
+                    suggestOptimizedRents();
+                    break;
+                case 12:
                     logout();
                     break;
                 default:
@@ -171,11 +175,24 @@ class PGOwner extends User {
         System.out.println("\n--- Add New Room ---");
         System.out.print("Enter Room ID: ");
         String roomId = scanner.nextLine();
-        System.out.print("Enter Rent: ");
+        System.out.print("Enter Base Rent: ");
         double rent = scanner.nextDouble();
         scanner.nextLine();
-        addRoom(new Room(roomId, rent));
-        System.out.println("Room added successfully!");
+        System.out.print("Enter Size (sqft): ");
+        double size = scanner.nextDouble();
+        scanner.nextLine();
+        System.out.print("Enter Amenity Score (1-10): ");
+        int amenities = scanner.nextInt();
+        scanner.nextLine();
+        System.out.print("Enter Sharing Type (Single/Double/Triple/Four): ");
+        String sharingType = scanner.nextLine();
+        
+        try {
+            addRoom(new Room(roomId, rent, size, amenities, sharingType));
+            System.out.println("Room added successfully!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
     private void assignRoomUI(Scanner scanner) {
@@ -247,8 +264,6 @@ class PGOwner extends User {
         }
         return null;
     }
-
-    // Existing business logic methods
     
     public List<Tenant> getTenants() {return this.tenants;}
     public void addTenant(Tenant tenant) { tenants.add(tenant); }
@@ -265,6 +280,7 @@ class PGOwner extends User {
         }
         System.out.println("Tenant not found.");
     }
+
     public void deleteTenant(String tenantId) {
         if (tenants.removeIf(t -> t.getUserId().equals(tenantId))) {
             System.out.println("Tenant deleted successfully.");
@@ -272,6 +288,7 @@ class PGOwner extends User {
             System.out.println("Tenant not found.");
         }
     }
+
     public void assignRoom(String roomId, Tenant tenant) {
         Room room = rooms.get(roomId);
         if (room != null && !room.isOccupied()) {
@@ -282,6 +299,7 @@ class PGOwner extends User {
             System.out.println("Room not available or doesn't exist!");
         }
     }
+
     public void addRoom(Room room) { rooms.put(room.getRoomId(), room); }
     public void generateReport() {
         System.out.println("\n--- PG STATUS REPORT ---");
@@ -319,6 +337,44 @@ class PGOwner extends User {
             return new Date();
         }
     }
+
+    public void suggestOptimizedRents() {
+        double occupancyRate = calculateOccupancyRate();
+        
+        System.out.println("\n=== RENT OPTIMIZATION REPORT ===");
+        System.out.printf("Current Occupancy: %.1f%%\n", occupancyRate * 100);
+        System.out.println("Sharing Type | Room | Current Rent | Suggested Rent | Change");
+        System.out.println("----------------------------------------------------------");
+        
+        // Define the order of sharing types
+        List<String> sharingOrder = Arrays.asList("Single", "Double", "Triple", "Four");
+        
+        // Sort rooms by sharing type
+        rooms.values().stream()
+            .sorted((r1, r2) -> {
+                int index1 = sharingOrder.indexOf(r1.getSharingType());
+                int index2 = sharingOrder.indexOf(r2.getSharingType());
+                return Integer.compare(index1, index2);
+            })
+            .forEach(room -> {
+                double current = room.getRent();
+                double suggested = RentOptimizer.calculateOptimizedRent(room, occupancyRate);
+                double change = ((suggested - current) / current) * 100;
+                
+                System.out.printf("%-12s | %-4s | ₹%-11.0f | ₹%-13.0f | %+.1f%%\n",
+                    room.getSharingType(),
+                    room.getRoomId(),
+                    current,
+                    suggested,
+                    change);
+            });
+    }
+
+    private double calculateOccupancyRate() {
+        long occupied = rooms.values().stream().filter(Room::isOccupied).count();
+        return rooms.isEmpty() ? 0 : (double) occupied / rooms.size();
+    }
+
 }
 
 // Tenant class with enhanced features
@@ -448,25 +504,55 @@ class Tenant extends User {
     }
 }
 
-// Room class (unchanged from your original)
+// Room class with proper constant definition
 class Room {
+    // Define the constant first
+    private static final Map<String, Double> SHARING_TYPE_FACTORS = Map.of(
+        "Single", 1.8,
+        "Double", 1.3,
+        "Triple", 1.0,
+        "Four", 0.8
+    );
+
     private String roomId;
     private boolean occupied;
-    private double rent;
+    private double baseRent;
+    private double sizeSqft;
+    private int amenityScore;
+    private String sharingType;
     private Tenant tenant;
 
-    public Room(String roomId, double rent) {
+    public Room(String roomId, double baseRent, double sizeSqft, 
+               int amenityScore, String sharingType) {
+        // Now we can safely use SHARING_TYPE_FACTORS
+        if (!SHARING_TYPE_FACTORS.containsKey(sharingType)) {
+            throw new IllegalArgumentException("Invalid sharing type. Must be Single/Double/Triple/Four");
+        }
         this.roomId = roomId;
-        this.rent = rent;
+        this.baseRent = baseRent;
+        this.sizeSqft = sizeSqft;
+        this.amenityScore = amenityScore;
+        this.sharingType = sharingType;
         this.occupied = false;
     }
 
+    // Getters
+    public static Map<String, Double> getSharingTypeFactors() {
+        return SHARING_TYPE_FACTORS;
+    }
+    
+    public double getRent() { return baseRent; }
     public String getRoomId() { return roomId; }
     public boolean isOccupied() { return occupied; }
-    public double getRent() { return rent; }
+    public double getBaseRent() { return baseRent; }
+    public double getSizeSqft() { return sizeSqft; }
+    public int getAmenityScore() { return amenityScore; }
+    public String getSharingType() { return sharingType; }
+    public Tenant getTenant() { return tenant; }
+
     public void setTenant(Tenant tenant) {
         this.tenant = tenant;
-        this.occupied = true;
+        this.occupied = (tenant != null);
     }
 }
 
@@ -488,6 +574,31 @@ class Payment {
     public Date getDueDate() { return dueDate; }
     public boolean isPaid() { return paid; }
     public void markAsPaid() { this.paid = true; }
+}
+
+class RentOptimizer {
+    // Constants remain in RentOptimizer (better encapsulation)
+    private static final Map<String, Double> SHARING_TYPE_FACTORS = Map.of(
+        "Single", 1.8,
+        "Double", 1.3,
+        "Triple", 1.0,
+        "Four", 0.8
+    );
+
+    public static double calculateOptimizedRent(Room room, double occupancyRate) {
+        if (room == null) throw new IllegalArgumentException("Room cannot be null");
+        
+        double optimizedRent = room.getBaseRent(); // Changed from getRent() to getBaseRent()
+        
+        optimizedRent += room.getSizeSqft() * 8;
+        optimizedRent *= 1 + (0.04 * room.getAmenityScore());
+        optimizedRent *= SHARING_TYPE_FACTORS.get(room.getSharingType()); // Remove getOrDefault()
+        
+        if (occupancyRate > 0.75) optimizedRent *= 1.1;
+        else if (occupancyRate < 0.4) optimizedRent *= 0.9;
+        
+        return Math.round(optimizedRent);
+    }
 }
 
 // Main application class
@@ -567,9 +678,10 @@ public class PGApp {
 
     private static void initializeSampleData() {
         // Add sample rooms
-        owner.addRoom(new Room("R101", 5000));
-        owner.addRoom(new Room("R102", 5500));
-        owner.addRoom(new Room("R103", 6000));
+        owner.addRoom(new Room("R101", 6000, 180, 7, "Single"));
+        owner.addRoom(new Room("R102", 4500, 220, 6, "Double"));
+        owner.addRoom(new Room("R103", 3500, 250, 5, "Triple"));
+        owner.addRoom(new Room("R104", 3000, 300, 4, "Four"));
         
         // Add sample tenants
         Tenant tenant1 = new Tenant("T001", "John Doe", "john@example.com", "password123");
