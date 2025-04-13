@@ -1,20 +1,37 @@
 import java.util.*;
 import java.text.*;
 
-
+/**
+ * Interface for classes that need logging capability.
+ * Provides a default implementation for logging messages.
+ */
 interface Loggable {
+    /**
+     * Logs a message to the console with a "LOG: " prefix.
+     * @param message The message to be logged
+     */
     default void log(String message) {
         System.out.println("LOG: " + message);
     }
 }
 
+/**
+ * Custom exception class for handling room assignment errors.
+ */
 class RoomAssignmentException extends Exception {
+    /**
+     * Constructs a new RoomAssignmentException with the specified error message.
+     * @param message The error message detailing the reason for the exception
+     */
     public RoomAssignmentException(String message) {
         super(message);
     }
 }
 
-// Abstract User class with authentication and authorization
+/**
+ * Abstract base class for all users in the PG management system.
+ * Provides authentication and authorization functionality.
+ */
 abstract class User {
     protected String userId;
     protected String name;
@@ -23,6 +40,14 @@ abstract class User {
     protected boolean loggedIn = false;
     protected int failedAttempts = 0;
 
+    /**
+     * Authenticates a user with email and password.
+     * Implements account lockout after 3 failed attempts.
+     * 
+     * @param email The email address for authentication
+     * @param password The password for authentication
+     * @return true if login successful, false otherwise
+     */
     public boolean login(String email, String password) {
         if (this.failedAttempts >= 3) {
             System.out.println("Account locked. Too many failed attempts.");
@@ -41,11 +66,21 @@ abstract class User {
         }
     }
 
+    /**
+     * Logs out the current user by setting loggedIn status to false.
+     */
     public void logout() {
         loggedIn = false;
         System.out.println("Logged out successfully.");
     }
 
+    /**
+     * Changes the user's password if the current password matches.
+     * 
+     * @param currentPass The current password
+     * @param newPass The new password to be set
+     * @return true if password changed successfully, false otherwise
+     */
     public boolean changePassword(String currentPass, String newPass) {
         if (this.password.equals(currentPass)) {
             this.password = newPass;
@@ -56,6 +91,10 @@ abstract class User {
         return false;
     }
 
+    /**
+     * Abstract method to display the user-specific menu.
+     * Must be implemented by subclasses.
+     */
     public abstract void showMenu();
 }
 
@@ -447,6 +486,150 @@ class PGOwner extends User {
 
 }
 
+/**
+ * Represents a tenant who pays rent on a daily basis.
+ */
+class DailyTenant extends Tenant {
+    /**
+     * Creates a new tenant with daily payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public DailyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 1;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() / 30; // Daily rate
+    }
+}
+
+/**
+ * Represents a tenant who pays rent on a weekly basis.
+ */
+class WeeklyTenant extends Tenant {
+    /**
+     * Creates a new tenant with weekly payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public WeeklyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 7;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return (room.getRent() * 7) / 30; // Weekly rate
+    }
+}
+
+/**
+ * Represents a tenant who pays rent every fifteen days.
+ */
+class FifteenDayTenant extends Tenant {
+    /**
+     * Creates a new tenant with fifteen-day payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public FifteenDayTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 15;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() / 2; // Half-monthly rate
+    }
+}
+
+/**
+ * Represents a tenant who pays rent on a quarterly basis (every three months).
+ */
+class QuarterlyTenant extends Tenant {
+    /**
+     * Creates a new tenant with quarterly payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public QuarterlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 90;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 3; // Three months rent
+    }
+}
+
+/**
+ * Represents a tenant who pays rent every six months.
+ */
+class BiYearlyTenant extends Tenant {
+    /**
+     * Creates a new tenant with bi-yearly payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public BiYearlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 180;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 6; // Six months rent
+    }
+}
+
+/**
+ * Represents a tenant who pays rent on a yearly basis.
+ */
+class YearlyTenant extends Tenant {
+    /**
+     * Creates a new tenant with yearly payment schedule.
+     * 
+     * @param userId Unique identifier for the tenant
+     * @param name Name of the tenant
+     * @param email Email address of the tenant
+     * @param password Password for tenant's account
+     */
+    public YearlyTenant(String userId, String name, String email, String password) {
+        super(userId, name, email, password);
+        this.paymentPeriodDays = 365;
+    }
+
+    @Override
+    protected double calculatePaymentAmount(Room room) {
+        if (room == null) return 0;
+        return room.getRent() * 12; // Full year rent
+    }
+}
+
 // Base Tenant class modified to be more abstract
 class Tenant extends User implements Loggable {
     private String contact;
@@ -595,93 +778,15 @@ class Tenant extends User implements Loggable {
     }
 }
 
-// Daily payment tenant
-class DailyTenant extends Tenant {
-    public DailyTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 1;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return room.getRent() / 30; // Daily rate
-    }
-}
-
-// Weekly payment tenant
-class WeeklyTenant extends Tenant {
-    public WeeklyTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 7;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return (room.getRent() * 7) / 30; // Weekly rate
-    }
-}
-
-// Fifteen day payment tenant
-class FifteenDayTenant extends Tenant {
-    public FifteenDayTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 15;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return room.getRent() / 2; // Half-monthly rate
-    }
-}
-
-// Quarterly payment tenant
-class QuarterlyTenant extends Tenant {
-    public QuarterlyTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 90;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return room.getRent() * 3; // Three months rent
-    }
-}
-
-// Bi-yearly payment tenant
-class BiYearlyTenant extends Tenant {
-    public BiYearlyTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 180;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return room.getRent() * 6; // Six months rent
-    }
-}
-
-// Yearly payment tenant
-class YearlyTenant extends Tenant {
-    public YearlyTenant(String userId, String name, String email, String password) {
-        super(userId, name, email, password);
-        this.paymentPeriodDays = 365;
-    }
-
-    @Override
-    protected double calculatePaymentAmount(Room room) {
-        if (room == null) return 0;
-        return room.getRent() * 12; // Full year rent
-    }
-}
-
-// Room class with proper constant definition
+/**
+ * Represents a room in the PG accommodation.
+ * Handles room details, occupancy status, and rent calculations based on various factors.
+ */
 class Room {
-    // Define the constant first
+    /**
+     * Mapping of sharing types to their corresponding rent multiplier factors.
+     * Single rooms have highest factor, decreasing through Double, Triple, and Four sharing.
+     */
     private static final Map<String, Double> SHARING_TYPE_FACTORS = Map.of(
         "Single", 1.8,
         "Double", 1.3,
@@ -697,9 +802,18 @@ class Room {
     private String sharingType;
     private Tenant tenant;
 
+    /**
+     * Creates a new Room with specified parameters.
+     * 
+     * @param roomId Unique identifier for the room
+     * @param baseRent Base monthly rent for the room
+     * @param sizeSqft Size of the room in square feet
+     * @param amenityScore Score representing the quality of amenities (1-10)
+     * @param sharingType Type of sharing arrangement (Single/Double/Triple/Four)
+     * @throws IllegalArgumentException if sharing type is invalid
+     */
     public Room(String roomId, double baseRent, double sizeSqft, 
                int amenityScore, String sharingType) {
-        // Now we can safely use SHARING_TYPE_FACTORS
         if (!SHARING_TYPE_FACTORS.containsKey(sharingType)) {
             throw new IllegalArgumentException("Invalid sharing type. Must be Single/Double/Triple/Four");
         }
@@ -731,28 +845,68 @@ class Room {
     }
 }
 
-// Payment class
+/**
+ * Represents a payment record for a tenant.
+ * Tracks payment details including amount, due date, and payment status.
+ */
 class Payment {
     private String paymentId;
     private double amount;
     private Date dueDate;
     private boolean paid;
 
+    /**
+     * Creates a new Payment record.
+     * 
+     * @param paymentId Unique identifier for the payment
+     * @param amount Amount to be paid
+     * @param dueDate Date by which payment should be made
+     */
     public Payment(String paymentId, double amount, Date dueDate) {
         this.paymentId = paymentId;
         this.amount = amount;
         this.dueDate = dueDate;
         this.paid = false;
     }
+
+    /**
+     * Gets the unique identifier of the payment.
+     * @return Payment ID string
+     */
     public String getPaymentId() { return paymentId; }
+
+    /**
+     * Gets the payment amount.
+     * @return Amount to be paid
+     */
     public double getAmount() { return amount; }
+
+    /**
+     * Gets the payment due date.
+     * @return Due date of the payment
+     */
     public Date getDueDate() { return dueDate; }
+
+    /**
+     * Checks if the payment has been made.
+     * @return true if paid, false otherwise
+     */
     public boolean isPaid() { return paid; }
+
+    /**
+     * Marks the payment as paid.
+     */
     public void markAsPaid() { this.paid = true; }
 }
 
+/**
+ * Utility class for optimizing room rents based on various factors.
+ * Calculates suggested rent prices considering room characteristics and occupancy rates.
+ */
 class RentOptimizer {
-    // Constants remain in RentOptimizer (better encapsulation)
+    /**
+     * Multiplier factors for different sharing types to adjust base rent.
+     */
     private static final Map<String, Double> SHARING_TYPE_FACTORS = Map.of(
         "Single", 1.8,
         "Double", 1.3,
@@ -760,6 +914,14 @@ class RentOptimizer {
         "Four", 0.8
     );
 
+    /**
+     * Calculates the optimized rent for a room based on multiple factors.
+     * 
+     * @param room The room to calculate optimized rent for
+     * @param occupancyRate Current occupancy rate of the PG
+     * @return Optimized rent amount
+     * @throws IllegalArgumentException if room is null
+     */
     public static double calculateOptimizedRent(Room room, double occupancyRate) {
         if (room == null) throw new IllegalArgumentException("Room cannot be null");
         
@@ -776,17 +938,33 @@ class RentOptimizer {
     }
 }
 
-// Main application class
+/**
+ * Main application class for the PG (Paying Guest) Management System.
+ * Handles user authentication and provides the main menu interface.
+ */
 public class PGApp {
     private static Scanner scanner = new Scanner(System.in);
     private static PGOwner owner = new PGOwner("O001", "PG Owner", "owner@pg.com", "admin123");
 
-
+    /**
+     * Entry point of the application.
+     * Initializes sample data and displays the main menu.
+     * 
+     * @param args Command line arguments (not used)
+     */
     public static void main(String[] args) {
         initializeSampleData();
         showMainMenu();
     }
 
+    /**
+     * Helper method to safely assign a room to a tenant.
+     * Wraps the room assignment process in exception handling.
+     * 
+     * @param owner The PG owner making the assignment
+     * @param roomId ID of the room to be assigned
+     * @param tenant Tenant to whom the room will be assigned
+     */
     private static void assignRoomWrapper(PGOwner owner, String roomId, Tenant tenant) {
         try {
             owner.assignRoom(roomId, tenant);
@@ -795,6 +973,10 @@ public class PGApp {
         }
     }
     
+    /**
+     * Displays and handles the main menu of the application.
+     * Provides options for owner login, tenant login, and exit.
+     */
     private static void showMainMenu() {
         while (true) {
             System.out.println("\n=== PG MANAGEMENT SYSTEM ===");
@@ -822,6 +1004,10 @@ public class PGApp {
         }
     }
 
+    /**
+     * Handles the owner login process.
+     * Prompts for email and password, and shows the owner menu upon successful login.
+     */
     private static void ownerLogin() {
         System.out.println("\n--- OWNER LOGIN ---");
         System.out.print("Email: ");
@@ -834,6 +1020,11 @@ public class PGApp {
         }
     }
 
+    /**
+     * Handles the tenant login process.
+     * Searches for the tenant by email and validates their credentials.
+     * Shows the tenant menu upon successful login.
+     */
     private static void tenantLogin() {
         System.out.println("\n--- TENANT LOGIN ---");
         System.out.print("Email: ");
@@ -859,6 +1050,10 @@ public class PGApp {
         System.out.println("Tenant not found! Please check your email or contact the owner.");
     }
 
+    /**
+     * Initializes the system with sample data for testing purposes.
+     * Creates sample rooms and tenants with default values.
+     */
     private static void initializeSampleData() {
         // Add sample rooms
         owner.addRoom(new Room("R101", 6000, 180, 7, "Single"));
